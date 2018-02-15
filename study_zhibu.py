@@ -1,5 +1,5 @@
 '''
-Author: sunhui 2018/02/06
+Author: sunhui 2018/02/15
 description: scraping "zhibugongzuo.com"
              reading news and studying materials and committing comments
 requirement: selenium, PhantomJS, BeautifulSoup, RE, time, random, sys
