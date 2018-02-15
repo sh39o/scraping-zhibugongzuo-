@@ -7,9 +7,12 @@ requirement: selenium, PhantomJS, BeautifulSoup, RE, time, random, sys
 
 '''
 from selenium import webdriver
+import pickle
+import os
+import sys
 
 global driver
-import sys
+
 
 sys.setrecursionlimit(1000000)
 
@@ -17,7 +20,6 @@ sys.setrecursionlimit(1000000)
 def reading(time_min, time_max):
     import time
     import random
-    from operator import mod
     from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.common.action_chains import ActionChains
     readtime = random.randint(time_min, time_max)
@@ -26,22 +28,15 @@ def reading(time_min, time_max):
     for it in range(0, readtime):
         ActionChains(driver).key_down(Keys.DOWN).key_up(Keys.DOWN).perform()  # 方向下键
         time.sleep(1)
-        if mod(it, 20) == 0:
-            driver.get_screenshot_as_file(str(it)+".png")
     return
 
 
 def setting_up_browser():
-    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
     global driver
     try:
         # setting up headless browser, Chromium Browser headers is adopted
-        dcap = dict(DesiredCapabilities.PHANTOMJS)
-        dcap["phantomjs.page.settings.userAgent"] = (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/63.0.3239.132")
-        driver = webdriver.PhantomJS(executable_path='/usr/local/Cellar/phantomjs/2.1.1/bin/phantomjs',
-                                     desired_capabilities=dcap)
-        print('PhantomJS is adopted')
+        driver = webdriver.Chrome()
+        print('Chrome is adopted')
         return driver
     except:
         print("cannot find browser!")
@@ -216,7 +211,7 @@ def comment(paragraphs):
     # driver.execute_script(js2)
     submit = driver.find_element_by_id("content-submit")
     ActionChains(driver).move_to_element(submit).click().perform()
-    driver.get_screenshot_as_file('submit.png')
+    #driver.get_screenshot_as_file('submit.png')
     print('提交成功！')
     time.sleep(1)
 
@@ -249,8 +244,6 @@ def comment_news(title, comments):
     from selenium.webdriver.common.action_chains import ActionChains
     import time
     global driver
-    #js2 = 'var ele = document.getElementsByClassName("taste-text j-reply-text")[0]; ele.value = ele.value + '+comments+';'
-    #driver.execute_script(js2)
     comment_text = driver.find_element_by_css_selector(".taste-text.j-reply-text")
     comment_text.send_keys(comments)
     time.sleep(2)
@@ -259,11 +252,11 @@ def comment_news(title, comments):
     submit = driver.find_element_by_css_selector(".btn.btn-yellow.pos-abs.pl.j-btn-comment-sub")
     ActionChains(driver).move_to_element(submit).click().perform()
     time.sleep(3)
-    driver.get_screenshot_as_file(title+'.png')
+    # driver.get_screenshot_as_file(title+'.png')
     print('评论成功！ %s' % comments)
 
 
-def reading_news(num_news=10, comment_yn='n', comments="赞！👍", ):
+def reading_news(num_news=10, comment_yn='n', comments="学习", ):
     import time
     from bs4 import BeautifulSoup
     global driver
@@ -280,6 +273,13 @@ def reading_news(num_news=10, comment_yn='n', comments="赞！👍", ):
     pageSource = driver.page_source
     soup = BeautifulSoup(pageSource, 'lxml')
     NewsList = soup.findAll("div", {"class": "zbgz-infolist-item-container"})
+    while (len(NewsList) < num_news):
+        js2 = 'document.getElementById("j-news-more").click();'
+        driver.execute_script(js2)
+        pageSource = driver.page_source
+        soup = BeautifulSoup(pageSource, 'lxml')
+        NewsList = soup.findAll("div", {"class": "zbgz-infolist-item-container"})
+        time.sleep(1)
     for i in range(0, num_news):
         title = NewsList[i].a.get_text()
         url = 'https://www.zhibugongzuo.com' + NewsList[i].a["href"]
@@ -291,9 +291,9 @@ def reading_news(num_news=10, comment_yn='n', comments="赞！👍", ):
         text = soup.find("div", {"class": "indexinfotext"}).get_text()
         print(text)
         reading(10, 15)
-        f = open(title + '.txt', "w")
-        f.write(text)
-        f.close()
+        #f = open(title + '.txt', "w")
+        #f.write(text)
+        #f.close()
 
         if comment_yn == 'y':
             comment_news(title, comments)
@@ -304,15 +304,21 @@ def close():
     driver.close()
     print('学习完毕！')
 
-
 if __name__ == '__main__':
     setting_up_browser()
-    access("https://www.zhibugongzuo.com/site/login")
-    verify_file = get_verify_code()
-    verify_code = verify_ocr(verify_file)
-    log_in(verify_code)
-    writing_cookies()
-    #title_list = get_title_list('系列讲话')
-    #study_comment(title_list, 'y')
-    reading_news(10, 'y')
+    if("cookies.zhibu" in os.listdir()):
+        print("cookie is found")
+        access("https://www.zhibugongzuo.com/site/login")
+        cookies = pickle.load(open("cookies.zhibu", "rb"))
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        access("https://www.zhibugongzuo.com/site/login")
+    else:
+        verify_file = get_verify_code()
+        verify_code = verify_ocr(verify_file)
+        log_in(verify_code, 'username', 'password')
+        writing_cookies()
+    # title_list = get_title_list('系列讲话')
+    # study_comment(title_list, 'n')
+    reading_news(10, 'n')
     close()
