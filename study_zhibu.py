@@ -4,7 +4,6 @@ description: scraping "zhibugongzuo.com"
              reading news and studying materials and committing comments
 requirement: selenium, PhantomJS, BeautifulSoup, RE, time, random, sys
              PIL, pyocr, pickle.
-
 '''
 from selenium import webdriver
 import pickle
@@ -32,7 +31,9 @@ def reading(time_min, time_max):
 
 
 def setting_up_browser():
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
     global driver
+    from selenium.webdriver.chrome.options import Options
     try:
         # setting up headless browser, Chromium Browser headers is adopted
         driver = webdriver.Chrome()
@@ -74,17 +75,19 @@ def verify_ocr(filename):
     from pyocr import pyocr
     from PIL import Image
     # verify Code OCR
+    im = Image.open(filename)
+    im.show()
     tools = pyocr.get_available_tools()[:]
-    print("Using '%s'" % (tools[0].get_name()))
     if len(tools) == 0:
         print("No OCR tool found")
         print("input manually")
-    im = Image.open(filename)
-    output = tools[0].image_to_string(Image.open('verify.tif'), lang='eng')
-    print("trying varify code..." + output)
-    im.show()
-    print("if not correct, retype")
-    output2 = input('input correct varify code:')
+        output2 = input('input correct varify code:')
+    else:
+        print("Using '%s'" % (tools[0].get_name()))
+        output = tools[0].image_to_string(Image.open('verify.tif'), lang='eng')
+        print("trying varify code..." + output)
+        print("if not correct, retype")
+        output2 = input('input correct varify code:')
     return output2
 
 
@@ -314,11 +317,12 @@ if __name__ == '__main__':
             driver.add_cookie(cookie)
         access("https://www.zhibugongzuo.com/site/login")
     else:
+        access("https://www.zhibugongzuo.com/site/login")
         verify_file = get_verify_code()
         verify_code = verify_ocr(verify_file)
         log_in(verify_code, 'username', 'password')
         writing_cookies()
     # title_list = get_title_list('系列讲话')
     # study_comment(title_list, 'n')
-    reading_news(10, 'n')
+    reading_news(10, 'n', '学习')
     close()
