@@ -2,8 +2,8 @@
 Author: sunhui 2018/02/15
 description: scraping "zhibugongzuo.com"
              reading news and studying materials and committing comments
-requirement: selenium, PhantomJS, BeautifulSoup, RE, time, random, sys
-             PIL, pyocr, pickle.
+requirement: selenium, Chrome, BeautifulSoup, RE, time, random, sys
+             PIL, pyocr, pickle, cv2.
 '''
 from selenium import webdriver
 import pickle
@@ -31,11 +31,9 @@ def reading(time_min, time_max):
 
 
 def setting_up_browser():
-    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
     global driver
-    from selenium.webdriver.chrome.options import Options
     try:
-        # setting up headless browser, Chromium Browser headers is adopted
+        # Chromium Browser headers is adopted
         driver = webdriver.Chrome()
         print('Chrome is adopted')
         return driver
@@ -59,11 +57,12 @@ def get_verify_code(captcha='login-captcha'):
     global driver
     # acquiring varify Code
     driver.get_screenshot_as_file('01.png')
-    verifyimage = driver.find_element_by_id(captcha)
-    left = int(verifyimage.location['x'])
-    top = int(verifyimage.location['y'])
-    right = int(verifyimage.location['x'] + verifyimage.size['width'])
-    bottom = int(verifyimage.location['y'] + verifyimage.size['height'])
+    verifyImage = driver.find_element_by_id(captcha)
+    # multiple by 2 is for Mac with Retina Display
+    left = int(verifyImage.location['x']) * 2
+    top = int(verifyImage.location['y']) * 2
+    right = left + int(verifyImage.size['width']) * 2
+    bottom = top + int(verifyImage.size['height']) * 2
     im = Image.open('01.png')
     im = im.crop((left, top, right, bottom)).convert('L')
     output_name = 'verify.tif'
@@ -74,21 +73,26 @@ def get_verify_code(captcha='login-captcha'):
 def verify_ocr(filename):
     from pyocr import pyocr
     from PIL import Image
+    import cv2
+    import numpy as np
     # verify Code OCR
-    im = Image.open(filename)
-    im.show()
     tools = pyocr.get_available_tools()[:]
     if len(tools) == 0:
         print("No OCR tool found")
         print("input manually")
-        output2 = input('input correct varify code:')
+        output = input('input correct varify code:')
     else:
+        cap = cv2.imread(filename, 0)
+        cap[:] = 255 - cap[:]
+        ret, thresh = cv2.threshold(cap, 100, 255, cv2.THRESH_BINARY)
+        kernel = np.ones((3, 3), dtype=np.uint8)
+        erosion = cv2.erode(thresh, kernel, iterations=2)
+        cv2.imshow('image', erosion)
+        cv2.imwrite('verify.png', erosion)
         print("Using '%s'" % (tools[0].get_name()))
-        output = tools[0].image_to_string(Image.open('verify.tif'), lang='eng')
-        print("trying varify code..." + output)
-        print("if not correct, retype")
-        output2 = input('input correct varify code:')
-    return output2
+        output = tools[0].image_to_string(Image.open('verify.png'), lang='eng')
+        print("recognizing..." + output)
+    return output
 
 
 def log_in(verify_code, username='', password=''):
