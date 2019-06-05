@@ -29,6 +29,7 @@ class zhibu:
         self.log_in()
 
     def setting_up_browser(self):
+        from selenium.webdriver.common.keys import Keys
         try:
             # Chromium Browser headers is adopted
             print('Chrome is adopted')
@@ -44,6 +45,7 @@ class zhibu:
         from selenium.common.exceptions import TimeoutException
         # acquiring Javascript form
         try:
+            print(self.web_address)
             self.driver.get(self.web_address)
         except TimeoutException:
             self.driver.execute_script('window.stop()')
@@ -55,10 +57,10 @@ class zhibu:
         self.driver.get_screenshot_as_file('01.png')
         verifyImage = self.driver.find_element_by_id("captcha-img")
         # multiple by 2 is for Mac with Retina Display
-        left = int(verifyImage.location['x']) * 2
-        top = int(verifyImage.location['y']) * 2
-        right = left + int(verifyImage.size['width']) * 2
-        bottom = top + int(verifyImage.size['height']) * 2
+        left = int(verifyImage.location['x']) 
+        top = int(verifyImage.location['y']) 
+        right = left + int(verifyImage.size['width']) 
+        bottom = top + int(verifyImage.size['height'])
         im = Image.open('01.png')
         im = im.crop((left, top, right, bottom)).convert('L')
         # im = signal.medfilt2d(im, (5, 5))
@@ -73,7 +75,7 @@ class zhibu:
         client = AipOcr(APP_ID, API_KEY, SECRECT_KEY)
         i = open(r'./verify.jpg', 'rb')
         img = i.read()
-        message = client.basicGeneral(img)
+        message = client.numbers(img)
         for i in message.get('words_result'):
             res = i.get('words')
         return res
@@ -87,6 +89,7 @@ class zhibu:
             self.get_verify_code()
             verify_code = self.verify_ocr(self.APP_ID, self.API_KEY, self.SECRET_KEY)
             if (not verify_code.isdigit()) or (len(verify_code) != 4):
+                print(verify_code)
                 verify_code = input('识别失败，输入验证码')
         else:
             verify_code = input('手动输入验证码')
@@ -139,7 +142,7 @@ class zhibu:
             title_list[i].click()
             windows = self.driver.window_handles
             self.driver.switch_to.window(windows[1])
-            time.sleep(1)
+            time.sleep(3)
             try:
                 context = self.driver.find_element_by_css_selector("[class='tf-newsDetail-content-text font-16']").text
                 print('*' * 50)
@@ -165,6 +168,10 @@ class zhibu:
             self.driver.close()
             time.sleep(1)
             windows = self.driver.window_handles
+            for win in windows[1:]:
+                self.driver.switch_to.window(win)
+                self.driver.close()
+                windows = self.driver.window_handles
             self.driver.switch_to.window(windows[0])
 
     def scroll(self, wait=15):
