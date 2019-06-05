@@ -46,7 +46,7 @@ class zhibu:
         try:
             self.driver.get(self.web_address)
         except TimeoutException:
-            driver.execute_script('window.stop()')
+            self.driver.execute_script('window.stop()')
 
     def get_verify_code(self):
         from PIL import Image
@@ -170,7 +170,7 @@ class zhibu:
     def scroll(self, wait=15):
         import random
         for _ in range(random.randint(wait, wait * 2)):
-            scl = random.randint(100, 300)
+            scl = random.randint(10, 30)
             # self.driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
             self.driver.execute_script("window.scrollBy(0,{})".format(scl))
             time.sleep(random.random())
